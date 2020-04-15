@@ -82,7 +82,7 @@ function Game$Cards(Props) {
                                   return /* NoSelection */0;
                                 }));
                   }
-                }), 4000);
+                }), 3000);
           return (function (param) {
                     clearTimeout(timeOut);
                     return /* () */0;
@@ -113,14 +113,21 @@ function Game$Cards(Props) {
                                       return Curry._1(setSelections, (function (param) {
                                                     var card$1 = card;
                                                     var selections = param;
+                                                    var newCard_cardIndex = card$1.cardIndex;
+                                                    var newCard_imageId = card$1.imageId;
+                                                    var newCard = {
+                                                      cardIndex: newCard_cardIndex,
+                                                      imageId: newCard_imageId,
+                                                      cardState: true
+                                                    };
                                                     if (typeof selections === "number") {
-                                                      return /* First */Block.__(0, [card$1]);
+                                                      return /* First */Block.__(0, [newCard]);
                                                     } else if (selections.tag) {
                                                       return selections;
                                                     } else {
                                                       return /* Second */Block.__(1, [
                                                                 selections[0],
-                                                                card$1
+                                                                newCard
                                                               ]);
                                                     }
                                                   }));

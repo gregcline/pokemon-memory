@@ -53,9 +53,10 @@ module Cards = {
       newCards;
     };
     let addSelection = (card, selections) => {
+      let newCard = {...card, cardState: true};
       switch (selections) {
-      | NoSelection => First(card)
-      | First(firstCard) => Second(firstCard, card)
+      | NoSelection => First(newCard)
+      | First(firstCard) => Second(firstCard, newCard)
       | second => second
       };
     };
@@ -72,13 +73,14 @@ module Cards = {
               | Second(card1, card2) =>
                 setCards(cards => {
                   let flip1 = flipCard(card1.cardIndex, card1, cards);
-                  flipCard(card2.cardIndex, card2, flip1);
+                  let flip2 = flipCard(card2.cardIndex, card2, flip1);
+                  flip2;
                 });
                 setSelections(_ => NoSelection);
               | _ => ()
               }
             },
-            4000,
+            3000,
           );
         Some(() => Js.Global.clearTimeout(timeOut));
       },
