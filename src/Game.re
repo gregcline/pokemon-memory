@@ -26,9 +26,15 @@ module Cards = {
   open Belt;
 
   type t = {
+    cardIndex: int,
     imageId: int,
     cardState: bool,
   };
+
+  type selections =
+    | NoSelection
+    | First(t)
+    | Second(t, t);
 
   [@react.component]
   let make = () => {
@@ -36,20 +42,63 @@ module Cards = {
       let half = Array.makeBy(10, _ => Js.Math.random_int(1, 152));
       let full = Array.concat(half, half);
       full
-      ->Array.map(imageId => {{imageId, cardState: false}})
-      ->Array.shuffle;
+      ->Array.map(imageId => {{cardIndex: 0, imageId, cardState: false}})
+      ->Array.shuffle
+      ->Array.mapWithIndex((cardIndex, card) => {...card, cardIndex});
     };
+
+    let flipCard = (i, card, cards) => {
+      let newCards = Array.copy(cards);
+      Array.setExn(newCards, i, {...card, cardState: !card.cardState});
+      newCards;
+    };
+    let addSelection = (card, selections) => {
+      switch (selections) {
+      | NoSelection => First(card)
+      | First(firstCard) => Second(firstCard, card)
+      | second => second
+      };
+    };
+
     let (cards, setCards) = React.useState(initialCards);
+    let (selections, setSelections) = React.useState(() => NoSelection);
+
+    React.useEffect1(
+      () => {
+        let timeOut =
+          Js.Global.setTimeout(
+            () => {
+              switch (selections) {
+              | Second(card1, card2) =>
+                setCards(cards => {
+                  let flip1 = flipCard(card1.cardIndex, card1, cards);
+                  flipCard(card2.cardIndex, card2, flip1);
+                });
+                setSelections(_ => NoSelection);
+              | _ => ()
+              }
+            },
+            4000,
+          );
+        Some(() => Js.Global.clearTimeout(timeOut));
+      },
+      [|selections|],
+    );
+
     let onClick = (i, _) => {
-      setCards(cards => {
+      switch (selections) {
+      | Second(_, _) => ()
+      | _ =>
         switch (cards[i]) {
         | Some(card) =>
-          let newCards = Array.copy(cards);
-          Array.setExn(newCards, i, {...card, cardState: true});
-          newCards;
-        | None => cards
+          setCards(flipCard(i, card));
+          setSelections(addSelection(card));
+
+        | None =>
+          setCards(cards => cards);
+          setSelections(selections => selections);
         }
-      });
+      };
     };
 
     <div
