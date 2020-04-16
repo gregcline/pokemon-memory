@@ -34,12 +34,57 @@ var Card = {
 function Game$Cards(Props) {
   var flipCard = function (i, card, cards) {
     var newCards = cards.slice(0);
+    var match = card.cardState;
+    var newState;
+    switch (match) {
+      case /* FaceDown */0 :
+          newState = /* FaceUp */1;
+          break;
+      case /* FaceUp */1 :
+          newState = /* FaceDown */0;
+          break;
+      case /* Matched */2 :
+          newState = /* Matched */2;
+          break;
+      
+    }
     Belt_Array.setExn(newCards, i, {
           cardIndex: card.cardIndex,
           imageId: card.imageId,
-          cardState: !card.cardState
+          cardState: newState
         });
     return newCards;
+  };
+  var matches = function (card1, card2) {
+    return card1.imageId === card2.imageId;
+  };
+  var setMatched = function (cards, card) {
+    var newCards = cards.slice(0);
+    Belt_Array.setExn(newCards, card.cardIndex, {
+          cardIndex: card.cardIndex,
+          imageId: card.imageId,
+          cardState: /* Matched */2
+        });
+    return newCards;
+  };
+  var addSelection = function (card, selections) {
+    var newCard_cardIndex = card.cardIndex;
+    var newCard_imageId = card.imageId;
+    var newCard = {
+      cardIndex: newCard_cardIndex,
+      imageId: newCard_imageId,
+      cardState: /* FaceUp */1
+    };
+    if (typeof selections === "number") {
+      return /* First */Block.__(0, [newCard]);
+    } else if (selections.tag) {
+      return selections;
+    } else {
+      return /* Second */Block.__(1, [
+                selections[0],
+                newCard
+              ]);
+    }
   };
   var match = React.useState((function () {
           var half = Belt_Array.makeBy(10, (function (param) {
@@ -50,7 +95,7 @@ function Game$Cards(Props) {
                                 return {
                                         cardIndex: 0,
                                         imageId: imageId,
-                                        cardState: false
+                                        cardState: /* FaceDown */0
                                       };
                               }))), (function (cardIndex, card) {
                         return {
@@ -74,13 +119,17 @@ function Game$Cards(Props) {
                   } else {
                     var card2 = selections[1];
                     var card1 = selections[0];
-                    Curry._1(setCards, (function (cards) {
-                            var flip1 = flipCard(card1.cardIndex, card1, cards);
-                            return flipCard(card2.cardIndex, card2, flip1);
-                          }));
-                    return Curry._1(setSelections, (function (param) {
-                                  return /* NoSelection */0;
-                                }));
+                    if (matches(card1, card2)) {
+                      return /* () */0;
+                    } else {
+                      Curry._1(setCards, (function (cards) {
+                              var flip1 = flipCard(card1.cardIndex, card1, cards);
+                              return flipCard(card2.cardIndex, card2, flip1);
+                            }));
+                      return Curry._1(setSelections, (function (param) {
+                                    return /* NoSelection */0;
+                                  }));
+                    }
                   }
                 }), 3000);
           return (function (param) {
@@ -98,46 +147,68 @@ function Game$Cards(Props) {
             }, Belt_Array.mapWithIndex(cards, (function (i, card) {
                     return React.createElement(Game$Card, {
                                 imageId: card.imageId,
-                                faceUp: card.cardState,
+                                faceUp: card.cardState === /* FaceUp */1 || card.cardState === /* Matched */2,
                                 onClick: (function (param) {
                                     var i$1 = i;
-                                    if (typeof selections !== "number" && selections.tag) {
-                                      return /* () */0;
-                                    }
-                                    var match = Belt_Array.get(cards, i$1);
-                                    if (match !== undefined) {
-                                      var card = match;
-                                      Curry._1(setCards, (function (param) {
-                                              return flipCard(i$1, card, param);
-                                            }));
-                                      return Curry._1(setSelections, (function (param) {
-                                                    var card$1 = card;
-                                                    var selections = param;
-                                                    var newCard_cardIndex = card$1.cardIndex;
-                                                    var newCard_imageId = card$1.imageId;
-                                                    var newCard = {
-                                                      cardIndex: newCard_cardIndex,
-                                                      imageId: newCard_imageId,
-                                                      cardState: true
-                                                    };
-                                                    if (typeof selections === "number") {
-                                                      return /* First */Block.__(0, [newCard]);
-                                                    } else if (selections.tag) {
+                                    if (typeof selections === "number") {
+                                      var match = Belt_Array.get(cards, i$1);
+                                      if (match !== undefined) {
+                                        var card = match;
+                                        Curry._1(setCards, (function (param) {
+                                                return flipCard(i$1, card, param);
+                                              }));
+                                        return Curry._1(setSelections, (function (param) {
+                                                      return addSelection(card, param);
+                                                    }));
+                                      } else {
+                                        Curry._1(setCards, (function (cards) {
+                                                return cards;
+                                              }));
+                                        return Curry._1(setSelections, (function (selections) {
                                                       return selections;
-                                                    } else {
-                                                      return /* Second */Block.__(1, [
-                                                                selections[0],
-                                                                newCard
-                                                              ]);
-                                                    }
-                                                  }));
+                                                    }));
+                                      }
+                                    } else if (selections.tag) {
+                                      var card2 = selections[1];
+                                      var card1 = selections[0];
+                                      if (matches(card1, card2)) {
+                                        Curry._1(setCards, (function (cards) {
+                                                return setMatched(setMatched(cards, card1), card2);
+                                              }));
+                                        return Curry._1(setSelections, (function (param) {
+                                                      return /* NoSelection */0;
+                                                    }));
+                                      } else {
+                                        return 0;
+                                      }
                                     } else {
-                                      Curry._1(setCards, (function (cards) {
-                                              return cards;
-                                            }));
-                                      return Curry._1(setSelections, (function (selections) {
-                                                    return selections;
-                                                  }));
+                                      var card1$1 = selections[0];
+                                      var match$1 = Belt_Array.get(cards, i$1);
+                                      if (match$1 !== undefined) {
+                                        var card2$1 = match$1;
+                                        if (matches(card1$1, card2$1)) {
+                                          Curry._1(setCards, (function (cards) {
+                                                  return setMatched(setMatched(cards, card1$1), card2$1);
+                                                }));
+                                          return Curry._1(setSelections, (function (param) {
+                                                        return /* NoSelection */0;
+                                                      }));
+                                        } else {
+                                          Curry._1(setCards, (function (param) {
+                                                  return flipCard(i$1, card2$1, param);
+                                                }));
+                                          return Curry._1(setSelections, (function (param) {
+                                                        return addSelection(card2$1, param);
+                                                      }));
+                                        }
+                                      } else {
+                                        Curry._1(setCards, (function (cards) {
+                                                return cards;
+                                              }));
+                                        return Curry._1(setSelections, (function (selections) {
+                                                      return selections;
+                                                    }));
+                                      }
                                     }
                                   }),
                                 key: String(i) + String(card.imageId)
