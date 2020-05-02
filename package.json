@@ -5,9 +5,9 @@
     "build": "./node_modules/bs-platform/bsb -make-world",
     "start": "./node_modules/bs-platform/bsb -make-world -w -ws _ ",
     "clean": "./node_modules/bs-platform/bsb -clean-world",
-    "format": "./node_modules/bs-platform/bsrefmt --in-place src/*.re",
+    "format": "./node_modules/bs-platform/bsrefmt --in-place **/*.re",
     "server": "moduleserve ./ --port 8000",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "./node_modules/.bin/jest --watchAll --env=node"
   },
   "keywords": [
     "BuckleScript",
@@ -22,7 +22,15 @@
     "reason-react": ">=0.7.0"
   },
   "devDependencies": {
+    "@glennsl/bs-jest": "^0.5.1",
     "bs-platform": "^7.2.2",
+    "jest-cli": "^25.3.0",
     "moduleserve": "^0.9.0"
+  },
+  "jest": {
+    "verbose": false,
+    "testPathIgnorePatterns": [
+      "node_modules"
+    ]
   }
 }

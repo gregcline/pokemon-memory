@@ -8,8 +8,21 @@ var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 
 function Game$Card(Props) {
   var imageId = Props.imageId;
-  var faceUp = Props.faceUp;
+  var cardState = Props.cardState;
   var onClick = Props.onClick;
+  var cardOpacity;
+  switch (cardState) {
+    case /* FaceDown */0 :
+        cardOpacity = "0";
+        break;
+    case /* FaceUp */1 :
+        cardOpacity = "1";
+        break;
+    case /* Matched */2 :
+        cardOpacity = "0.5";
+        break;
+    
+  }
   return React.createElement("div", {
               className: "card",
               style: {
@@ -17,11 +30,17 @@ function Game$Card(Props) {
                 borderRadius: "0.5rem"
               },
               onClick: onClick
-            }, React.createElement("img", {
+            }, cardState === /* Matched */2 ? React.createElement("div", {
+                    style: {
+                      color: "#BBB",
+                      padding: "1em",
+                      position: "absolute"
+                    }
+                  }, "✓") : null, React.createElement("img", {
                   style: {
                     display: "block",
                     margin: "auto",
-                    opacity: faceUp ? "1" : "0"
+                    opacity: cardOpacity
                   },
                   src: "./static/" + (String(imageId) + ".png")
                 }));
@@ -31,61 +50,62 @@ var Card = {
   make: Game$Card
 };
 
+function matches(card1, card2) {
+  if (card1.imageId === card2.imageId && card1.cardState !== /* Matched */2) {
+    return card2.cardState !== /* Matched */2;
+  } else {
+    return false;
+  }
+}
+
+function flipCard(cards, i, card) {
+  var newCards = cards.slice(0);
+  var match = card.cardState;
+  var newState;
+  switch (match) {
+    case /* FaceDown */0 :
+        newState = /* FaceUp */1;
+        break;
+    case /* FaceUp */1 :
+        newState = /* FaceDown */0;
+        break;
+    case /* Matched */2 :
+        newState = /* Matched */2;
+        break;
+    
+  }
+  Belt_Array.setExn(newCards, i, {
+        cardIndex: card.cardIndex,
+        imageId: card.imageId,
+        cardState: newState
+      });
+  return newCards;
+}
+
+function setMatched(cards, card) {
+  var newCards = cards.slice(0);
+  Belt_Array.setExn(newCards, card.cardIndex, {
+        cardIndex: card.cardIndex,
+        imageId: card.imageId,
+        cardState: /* Matched */2
+      });
+  return newCards;
+}
+
+function addSelection(card, selections) {
+  if (typeof selections === "number") {
+    return /* First */Block.__(0, [card]);
+  } else if (selections.tag) {
+    return selections;
+  } else {
+    return /* Second */Block.__(1, [
+              selections[0],
+              card
+            ]);
+  }
+}
+
 function Game$Cards(Props) {
-  var flipCard = function (i, card, cards) {
-    var newCards = cards.slice(0);
-    var match = card.cardState;
-    var newState;
-    switch (match) {
-      case /* FaceDown */0 :
-          newState = /* FaceUp */1;
-          break;
-      case /* FaceUp */1 :
-          newState = /* FaceDown */0;
-          break;
-      case /* Matched */2 :
-          newState = /* Matched */2;
-          break;
-      
-    }
-    Belt_Array.setExn(newCards, i, {
-          cardIndex: card.cardIndex,
-          imageId: card.imageId,
-          cardState: newState
-        });
-    return newCards;
-  };
-  var matches = function (card1, card2) {
-    return card1.imageId === card2.imageId;
-  };
-  var setMatched = function (cards, card) {
-    var newCards = cards.slice(0);
-    Belt_Array.setExn(newCards, card.cardIndex, {
-          cardIndex: card.cardIndex,
-          imageId: card.imageId,
-          cardState: /* Matched */2
-        });
-    return newCards;
-  };
-  var addSelection = function (card, selections) {
-    var newCard_cardIndex = card.cardIndex;
-    var newCard_imageId = card.imageId;
-    var newCard = {
-      cardIndex: newCard_cardIndex,
-      imageId: newCard_imageId,
-      cardState: /* FaceUp */1
-    };
-    if (typeof selections === "number") {
-      return /* First */Block.__(0, [newCard]);
-    } else if (selections.tag) {
-      return selections;
-    } else {
-      return /* Second */Block.__(1, [
-                selections[0],
-                newCard
-              ]);
-    }
-  };
   var match = React.useState((function () {
           var half = Belt_Array.makeBy(10, (function (param) {
                   return Js_math.random_int(1, 152);
@@ -120,11 +140,10 @@ function Game$Cards(Props) {
                     var card2 = selections[1];
                     var card1 = selections[0];
                     if (matches(card1, card2)) {
-                      return /* () */0;
+                      return 0;
                     } else {
                       Curry._1(setCards, (function (cards) {
-                              var flip1 = flipCard(card1.cardIndex, card1, cards);
-                              return flipCard(card2.cardIndex, card2, flip1);
+                              return flipCard(flipCard(cards, card1.cardIndex, card1), card2.cardIndex, card2);
                             }));
                       return Curry._1(setSelections, (function (param) {
                                     return /* NoSelection */0;
@@ -147,15 +166,15 @@ function Game$Cards(Props) {
             }, Belt_Array.mapWithIndex(cards, (function (i, card) {
                     return React.createElement(Game$Card, {
                                 imageId: card.imageId,
-                                faceUp: card.cardState === /* FaceUp */1 || card.cardState === /* Matched */2,
+                                cardState: card.cardState,
                                 onClick: (function (param) {
                                     var i$1 = i;
                                     if (typeof selections === "number") {
                                       var match = Belt_Array.get(cards, i$1);
                                       if (match !== undefined) {
                                         var card = match;
-                                        Curry._1(setCards, (function (param) {
-                                                return flipCard(i$1, card, param);
+                                        Curry._1(setCards, (function (cards) {
+                                                return flipCard(cards, i$1, card);
                                               }));
                                         return Curry._1(setSelections, (function (param) {
                                                       return addSelection(card, param);
@@ -182,25 +201,15 @@ function Game$Cards(Props) {
                                         return 0;
                                       }
                                     } else {
-                                      var card1$1 = selections[0];
                                       var match$1 = Belt_Array.get(cards, i$1);
                                       if (match$1 !== undefined) {
                                         var card2$1 = match$1;
-                                        if (matches(card1$1, card2$1)) {
-                                          Curry._1(setCards, (function (cards) {
-                                                  return setMatched(setMatched(cards, card1$1), card2$1);
-                                                }));
-                                          return Curry._1(setSelections, (function (param) {
-                                                        return /* NoSelection */0;
-                                                      }));
-                                        } else {
-                                          Curry._1(setCards, (function (param) {
-                                                  return flipCard(i$1, card2$1, param);
-                                                }));
-                                          return Curry._1(setSelections, (function (param) {
-                                                        return addSelection(card2$1, param);
-                                                      }));
-                                        }
+                                        Curry._1(setCards, (function (cards) {
+                                                return flipCard(cards, i$1, card2$1);
+                                              }));
+                                        return Curry._1(setSelections, (function (param) {
+                                                      return addSelection(card2$1, param);
+                                                    }));
                                       } else {
                                         Curry._1(setCards, (function (cards) {
                                                 return cards;
@@ -217,6 +226,10 @@ function Game$Cards(Props) {
 }
 
 var Cards = {
+  matches: matches,
+  flipCard: flipCard,
+  setMatched: setMatched,
+  addSelection: addSelection,
   make: Game$Cards
 };
 

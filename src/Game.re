@@ -1,6 +1,16 @@
+type cardState =
+| FaceDown
+| FaceUp
+| Matched;
+
 module Card = {
   [@react.component]
-  let make = (~imageId, ~faceUp, ~onClick) => {
+  let make = (~imageId, ~cardState, ~onClick) => {
+      let cardOpacity = switch(cardState) {
+      | FaceUp => "1"
+      | FaceDown => "0"
+      | Matched => "0.5"
+      };
     <div
       style={ReactDOMRe.Style.make(
         ~backgroundColor="#333",
@@ -9,11 +19,26 @@ module Card = {
       )}
       onClick
       className="card">
+      {
+      if (cardState == Matched) {
+        <div
+            style={ReactDOMRe.Style.make(
+                    ~padding="1em",
+                    ~position="absolute",
+                    ~color="#BBB",
+                    ())
+            }>
+        {React.string({j|✓|j})}
+        </div>
+      } else {
+          React.null
+      }
+      }
       <img
         src={j|./static/$imageId.png|j}
         style={ReactDOMRe.Style.make(
           ~display="block",
-          ~opacity=faceUp ? "1" : "0",
+          ~opacity=cardOpacity,
           ~margin="auto",
           (),
         )}
@@ -24,11 +49,6 @@ module Card = {
 
 module Cards = {
   open Belt;
-
-  type cardState =
-    | FaceDown
-    | FaceUp
-    | Matched;
 
   type t = {
     cardIndex: int,
@@ -41,6 +61,38 @@ module Cards = {
     | First(t)
     | Second(t, t);
 
+  let matches = (card1, card2) => {
+    card1.imageId == card2.imageId
+    && card1.cardState != Matched
+    && card2.cardState != Matched;
+  };
+
+  let flipCard = (cards, i, card) => {
+    let newCards = Array.copy(cards);
+    let newState =
+      switch (card.cardState) {
+      | FaceUp => FaceDown
+      | FaceDown => FaceUp
+      | Matched => Matched
+      };
+    Array.setExn(newCards, i, {...card, cardState: newState});
+    newCards;
+  };
+
+  let setMatched = (cards, card) => {
+    let newCards = Array.copy(cards);
+    Array.setExn(newCards, card.cardIndex, {...card, cardState: Matched});
+    newCards;
+  };
+
+  let addSelection = (card, selections) => {
+    switch (selections) {
+    | NoSelection => First(card)
+    | First(firstCard) => Second(firstCard, card)
+    | second => second
+    };
+  };
+
   [@react.component]
   let make = () => {
     let initialCards = () => {
@@ -51,35 +103,6 @@ module Cards = {
       ->Array.shuffle
       ->Array.mapWithIndex((cardIndex, card) => {...card, cardIndex});
     };
-
-    let flipCard = (i, card, cards) => {
-      let newCards = Array.copy(cards);
-      let newState =
-        switch (card.cardState) {
-        | FaceUp => FaceDown
-        | FaceDown => FaceUp
-        | Matched => Matched
-        };
-      Array.setExn(newCards, i, {...card, cardState: newState});
-      newCards;
-    };
-    let matches = (card1, card2) => {
-      card1.imageId == card2.imageId;
-    };
-    let setMatched = (cards, card) => {
-      let newCards = Array.copy(cards);
-      Array.setExn(newCards, card.cardIndex, {...card, cardState: Matched});
-      newCards;
-    };
-    let addSelection = (card, selections) => {
-      let newCard = {...card, cardState: FaceUp};
-      switch (selections) {
-      | NoSelection => First(newCard)
-      | First(firstCard) => Second(firstCard, newCard)
-      | second => second
-      };
-    };
-
     let (cards, setCards) = React.useState(initialCards);
     let (selections, setSelections) = React.useState(() => NoSelection);
 
@@ -89,13 +112,15 @@ module Cards = {
           Js.Global.setTimeout(
             () => {
               switch (selections) {
-              | Second(card1, card2) when !matches(card1, card2) =>
-                setCards(cards => {
-                  let flip1 = flipCard(card1.cardIndex, card1, cards);
-                  let flip2 = flipCard(card2.cardIndex, card2, flip1);
-                  flip2;
-                });
-                setSelections(_ => NoSelection);
+              | Second(card1, card2) =>
+                if (!matches(card1, card2)) {
+                  setCards(cards => {
+                    cards
+                    ->flipCard(card1.cardIndex, card1)
+                    ->flipCard(card2.cardIndex, card2)
+                  });
+                  setSelections(_ => NoSelection);
+                }
               | _ => ()
               }
             },
@@ -118,16 +143,11 @@ module Cards = {
           setCards(cards => {cards->setMatched(card1)->setMatched(card2)});
           setSelections(_ => NoSelection);
         }
-      | First(card1) =>
+      | First(_) =>
         switch (cards[i]) {
         | Some(card2) =>
-          if (matches(card1, card2)) {
-            setCards(cards => {cards->setMatched(card1)->setMatched(card2)});
-            setSelections(_ => NoSelection);
-          } else {
-            setCards(flipCard(i, card2));
-            setSelections(addSelection(card2));
-          }
+          setCards(cards => flipCard(cards, i, card2));
+          setSelections(addSelection(card2));
         | None =>
           setCards(cards => cards);
           setSelections(selections => selections);
@@ -135,7 +155,7 @@ module Cards = {
       | _ =>
         switch (cards[i]) {
         | Some(card) =>
-          setCards(flipCard(i, card));
+          setCards(cards => flipCard(cards, i, card));
           setSelections(addSelection(card));
 
         | None =>
@@ -158,10 +178,7 @@ module Cards = {
            <Card
              key={string_of_int(i) ++ string_of_int(card.imageId)}
              imageId={card.imageId}
-             faceUp={
-               card.cardState == FaceUp || card.cardState == Matched
-                 ? true : false
-             }
+             cardState={card.cardState}
              onClick={onClick(i)}
            />
          );
