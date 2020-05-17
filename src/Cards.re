@@ -140,11 +140,6 @@ let make = (~changePlayer) => {
     [|selections|],
   );
 
-  /* TODO:
-        - Make it not match previously matched cards with new cards
-        - Make it immediately flip two unmatched cards when you click
-          a new one
-     */
   let onClick = (i, _) => {
     switch (selections) {
     | Second(card1, card2) =>
