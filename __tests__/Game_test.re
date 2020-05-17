@@ -1,103 +1,26 @@
 open Jest;
 open Expect;
 
-module Cards = Game.Cards;
+describe("Game", () => {
+    describe("nextPlayer", () => {
+        test("returns Player1 for Player2", () => {
+            let player = Game.Player2;
+            expect(Game.nextPlayer(player)) |> toEqual(Game.Player1);
+        });
 
-describe("Cards", () => {
-  describe("matches", () => {
-    test("is true for two unmatched cards with the same id", () => {
-      let card1 = {Cards.cardIndex: 0, imageId: 1, cardState: FaceUp};
-      let card2 = {Cards.cardIndex: 1, imageId: 1, cardState: FaceUp};
-      expect(Cards.matches(card1, card2)) |> toBe(true);
+        test("returns Player2 for Player1", () => {
+            let player = Game.Player1;
+            expect(Game.nextPlayer(player)) |> toEqual(Game.Player2);
+        });
     });
 
-    test("is false for two unmatched cards with different ids", () => {
-      let card1 = {Cards.cardIndex: 0, imageId: 1, cardState: FaceUp};
-      let card2 = {Cards.cardIndex: 1, imageId: 2, cardState: FaceUp};
-      expect(Cards.matches(card1, card2)) |> toBe(false);
+    describe("showPlayer", () => {
+        test("shows 'Player 1' for Player1", () => {
+            expect(Game.showPlayer(Game.Player1)) |> toEqual("Player 1")
+        });
+
+        test("shows 'Player 2' for Player2", () => {
+            expect(Game.showPlayer(Game.Player2)) |> toEqual("Player 2")
+        });
     });
-
-    test("is false for a matched card with the same ids", () => {
-      let card1 = {Cards.cardIndex: 0, imageId: 1, cardState: Matched};
-      let card2 = {Cards.cardIndex: 1, imageId: 1, cardState: FaceUp};
-      expect(Cards.matches(card1, card2)) |> toBe(false);
-      expect(Cards.matches(card2, card1)) |> toBe(false);
-    });
-  });
-
-  describe("flipCard", () => {
-    test("FaceDown goes to FaceUp", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: FaceDown};
-      let cards = [|card|];
-
-      expect(Cards.flipCard(cards, 0, card))
-      |> toEqual([|{Cards.imageId: 1, cardIndex: 0, cardState: FaceUp}|]);
-    });
-
-    test("FaceUp goes to FaceDown", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: FaceUp};
-      let cards = [|card|];
-
-      expect(Cards.flipCard(cards, 0, card))
-      |> toEqual([|{Cards.imageId: 1, cardIndex: 0, cardState: FaceDown}|]);
-    });
-
-    test("Matched goes to Matched", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: Matched};
-      let cards = [|card|];
-
-      expect(Cards.flipCard(cards, 0, card))
-      |> toEqual([|{Cards.imageId: 1, cardIndex: 0, cardState: Matched}|]);
-    });
-  });
-
-  describe("setMatched", () => {
-    test("sets a FaceDown card as Matched", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: FaceDown};
-      let cards = [|card|];
-
-      expect(Cards.setMatched(cards, card))
-      |> toEqual([|{Cards.imageId: 1, cardIndex: 0, cardState: Matched}|]);
-    });
-
-    test("sets a FaceUp card as Matched", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: FaceUp};
-      let cards = [|card|];
-
-      expect(Cards.setMatched(cards, card))
-      |> toEqual([|{Cards.imageId: 1, cardIndex: 0, cardState: Matched}|]);
-    });
-
-    test("sets a Matched card as Matched", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: Matched};
-      let cards = [|card|];
-
-      expect(Cards.setMatched(cards, card))
-      |> toEqual([|{Cards.imageId: 1, cardIndex: 0, cardState: Matched}|]);
-    });
-  });
-
-  describe("addSelection", () => {
-    test("NoSelection takes a card and becomes First(card)", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: FaceDown};
-
-      expect(Cards.addSelection(card, NoSelection))
-      |> toEqual(Cards.First(card));
-    });
-
-    test("First(card1) takes a card and becomes Second(card1, card)", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: FaceDown};
-
-      expect(Cards.addSelection(card, First(card)))
-      |> toEqual(Cards.Second(card, card));
-    });
-
-    test("Second(card1, card2) doesn't change", () => {
-      let card = {Cards.imageId: 1, cardIndex: 0, cardState: FaceDown};
-      let newCard = {Cards.imageId: 2, cardIndex: 2, cardState: FaceDown};
-
-      expect(Cards.addSelection(newCard, Second(card, card)))
-      |> toEqual(Cards.Second(card, card));
-    });
-  });
 });
