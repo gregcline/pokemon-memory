@@ -67,7 +67,7 @@ describe("Cards", () => {
   });
 
   describe("setMatched", () => {
-    test("sets a FaceDown card as Matched", () => {
+    test("sets a FaceDown card as Matched and records character", () => {
       let card = {Cards.imageId: 1, cardIndex: 0, cardState: FaceDown};
       let cards = [|card|];
 

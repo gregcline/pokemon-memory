@@ -1,18 +1,59 @@
 open Belt;
 
+type player =
+  | Player1
+  | Player2;
+
 type cardState =
   | FaceDown
   | FaceUp
-  | Matched;
+  | Matched(Game.player);
+
+let nextPlayer = player => {
+  switch (player) {
+  | Player1 => Player2
+  | Player2 => Player1
+  };
+};
+
+let showPlayer = player => {
+  switch (player) {
+  | Player1 => "Player 1"
+  | Player2 => "Player 2"
+  };
+};
 
 module Card = {
+    let click = (onClick, cardState) => {
+        switch (cardState) {
+        | Matched(_) => _ => ()
+        | _ => onClick
+        };
+    };
+
+    let checkMark = (cardState) => {
+        switch (cardState) {
+        | Matched(_) =>
+              <div
+               style={ReactDOMRe.Style.make(
+                 ~padding="1em",
+                 ~position="absolute",
+                 ~color="#BBB",
+                 (),
+               )}>
+               {React.string({j|✓|j})}
+             </div>;
+        | _ => React.null;
+        }
+    };
+
   [@react.component]
   let make = (~imageId, ~cardState, ~onClick) => {
     let cardOpacity =
       switch (cardState) {
       | FaceUp => "1"
       | FaceDown => "0"
-      | Matched => "0.5"
+      | Matched(_) => "0.5"
       };
     <div
       style={ReactDOMRe.Style.make(
@@ -20,27 +61,9 @@ module Card = {
         ~borderRadius="0.5rem",
         (),
       )}
-      onClick={
-                if (cardState != Matched) {
-                  onClick;
-                } else {
-                  _ => ();
-                }
-              }
+      onClick={ click(onClick, cardState) }
       className="card">
-      {if (cardState == Matched) {
-         <div
-           style={ReactDOMRe.Style.make(
-             ~padding="1em",
-             ~position="absolute",
-             ~color="#BBB",
-             (),
-           )}>
-           {React.string({j|✓|j})}
-         </div>;
-       } else {
-         React.null;
-       }}
+      { checkMark(cardState) }
       <img
         src={j|./static/$imageId.png|j}
         style={ReactDOMRe.Style.make(
@@ -66,16 +89,18 @@ type selections =
   | Second(t, t);
 
 let matches = (card1, card2) => {
-  card1.imageId == card2.imageId
-  && card1.cardState != Matched
-  && card2.cardState != Matched;
+    switch (card1.cardState, card2.cardState) {
+    | (Matched(_), _) => false
+    | (_, Matched(_)) => false
+    | _ => card1.imageId == card2.imageId
+    }
 };
 
 let switchState = state => {
   switch (state) {
   | FaceUp => FaceDown
   | FaceDown => FaceUp
-  | Matched => Matched
+  | Matched(x) => Matched(x)
   };
 };
 
@@ -86,9 +111,9 @@ let flipCard = (cards, i, card) => {
   newCards;
 };
 
-let setMatched = (cards, card) => {
+let setMatched = (cards, card, player) => {
   let newCards = Array.copy(cards);
-  Array.setExn(newCards, card.cardIndex, {...card, cardState: Matched});
+  Array.setExn(newCards, card.cardIndex, {...card, cardState: Matched(player)});
   newCards;
 };
 
@@ -102,7 +127,7 @@ let addSelection = (card, selections) => {
 };
 
 [@react.component]
-let make = (~changePlayer) => {
+let make = (~changePlayer, ~player) => {
   let initialCards = () => {
     let half = Array.makeBy(10, _ => Js.Math.random_int(1, 152));
     let full = Array.concat(half, half);
@@ -144,7 +169,7 @@ let make = (~changePlayer) => {
     switch (selections) {
     | Second(card1, card2) =>
       if (matches(card1, card2)) {
-        setCards(cards => {cards->setMatched(card1)->setMatched(card2)});
+        setCards(cards => {cards->setMatched(card1, player)->setMatched(card2, player)});
         setSelections(_ => NoSelection);
       } else {
         setCards(_ => {
@@ -159,7 +184,7 @@ let make = (~changePlayer) => {
       switch (cards[i]) {
       | Some(card2) =>
         if (matches(card1, card2)) {
-          setCards(cards => {cards->setMatched(card1)->setMatched(card2)});
+          setCards(cards => {cards->setMatched(card1, player)->setMatched(card2, player)});
           setSelections(_ => NoSelection);
         } else {
           setCards(cards => flipCard(cards, i, card2));
