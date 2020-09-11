@@ -2,7 +2,6 @@ use console_log;
 use log::info;
 use sauron::prelude::*;
 
-mod card;
 mod cards;
 
 #[wasm_bindgen(start)]

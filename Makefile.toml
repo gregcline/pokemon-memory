@@ -7,3 +7,8 @@ watch = { ignore_pattern = "static/*" }
 command = "simple-http-server"
 args = ["-i", "./static/", "-p", "3000", "--nocache", "--try-file", "./static/index.html"]
 
+
+[tasks.test]
+command = "cargo"
+args = ["test"]
+watch = { ignore_pattern = "static/*" }
