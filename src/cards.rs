@@ -98,7 +98,7 @@ pub enum Msg {
     NoOp,
     Clicked(usize),
     UpdateSelected(Card),
-    Deselect(Card, Card),
+    Deselect,
 }
 
 #[derive(Debug, PartialEq)]
@@ -111,6 +111,7 @@ enum Selected {
 pub struct Cards {
     cards: Vec<Card>,
     selected: Selected,
+    pending_deselect: Option<(Card, Card)>,
 }
 
 impl Cards {
@@ -137,6 +138,7 @@ impl Default for Cards {
                 .map(|(index, &&id)| Card::new(index, id))
                 .collect(),
             selected: Selected::None,
+            pending_deselect: None,
         }
     }
 }
@@ -170,9 +172,17 @@ impl Component<Msg> for Cards {
 
                 let card = self.cards[index].clone();
 
-                Cmd::new(move |program: Program<Self, Msg>| {
+                let update_selected = Cmd::new(move |program: Program<Self, Msg>| {
                     program.dispatch(Msg::UpdateSelected(card))
-                })
+                });
+
+                let deselect = if let Some((card1, card2)) = self.pending_deselect {
+                    Cmd::new(move |program: Program<Self, Msg>| program.dispatch(Msg::Deselect))
+                } else {
+                    Cmd::none()
+                };
+
+                Cmd::batch(vec![deselect, update_selected])
             }
             Msg::UpdateSelected(card) => {
                 let cmd = match self.selected {
@@ -182,10 +192,12 @@ impl Component<Msg> for Cards {
                             self.cards[card.index].set_matched();
                             Cmd::none()
                         } else {
+                            self.pending_deselect = Some((card, card1));
+
                             Cmd::new(move |program| {
                                 let timeout: Closure<dyn FnMut()> =
                                     Closure::wrap(Box::new(move || {
-                                        program.dispatch(Msg::Deselect(card, card1));
+                                        program.dispatch(Msg::Deselect);
                                     }));
                                 window()
                                     .expect("Could not find window")
@@ -204,15 +216,19 @@ impl Component<Msg> for Cards {
 
                 cmd
             }
-            Msg::Deselect(card1, card2) => {
-                self.cards[card1.index].switch_state();
-                self.cards[card2.index].switch_state();
+            Msg::Deselect => {
+                if let Some((card1, card2)) = self.pending_deselect {
+                    self.cards[card1.index].switch_state();
+                    self.cards[card2.index].switch_state();
+                    self.pending_deselect = None;
+                }
 
                 Cmd::none()
             }
             Msg::NoOp => Cmd::none(),
         };
-        info!("New state: {:#?}", self.selected);
+        info!("New selected: {:#?}", self.selected);
+        info!("New pending_deselect: {:#?}", self.pending_deselect);
 
         cmd
     }
